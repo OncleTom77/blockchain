@@ -32,7 +32,7 @@ Temporary Items
 
 # User-specific stuff:
 .idea
-.iml
+*.iml
 
 # CMake
 cmake-build-debug/
