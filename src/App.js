@@ -1,5 +1,4 @@
 import React, {Component} from 'react'
-import SimpleStorageContract from '../build/contracts/SimpleStorage.json'
 import MovieMark from '../build/contracts/MovieMark'
 import getWeb3 from './utils/getWeb3'
 
@@ -8,6 +7,53 @@ import './css/open-sans.css'
 import './css/pure-min.css'
 import './App.css'
 import { log } from 'util';
+
+const contract = require('truffle-contract');
+const movieMark = contract(MovieMark);
+
+const ABI =
+	[{
+		"constant": false,
+		"inputs": [{
+			"name": "movieTitle",
+			"type": "string"
+		},{
+			"name": "mark",
+			"type": "int256"
+		}],
+		"name" : "sendNewOpinion",
+		"outputs" : [],
+		"payable" : false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name" : "getOpinionCount",
+		"outputs" : [{
+			name: "",
+			type: "uint256"
+		}],
+		"payable" : false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [{
+			"name": "index",
+			"type": "uint"
+		}],
+		"name" : "getOpinionMovieTitle",
+		"outputs" : [{
+			name: "",
+			type: "string"
+		}],
+		"payable" : false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}];
 
 class App extends Component {
 	constructor(props) {
@@ -30,6 +76,7 @@ class App extends Component {
 		this.addMark = this.addMark.bind(this);
 		this.getDetails = this.getDetails.bind(this);
 		this.getPictureUrl = this.getPictureUrl.bind(this);
+		this.getOpinionCount = this.getOpinionCount.bind(this);
 	}
 
 	componentWillMount() {
@@ -58,13 +105,13 @@ class App extends Component {
 		 * state management library, but for convenience I've placed them here.
 		 */
 
-		this.changeContractValueSigned(1);
+		//this.changeContractValueSigned(1);
 	}
 
 	handleSubmit() {
-		const value = this.state.contractValue;
+		//const value = this.state.contractValue;
 
-		this.changeContractValueSigned(value);
+		//this.changeContractValueSigned(value);
 	}
 
 	addMark() {
@@ -92,14 +139,36 @@ class App extends Component {
 	getPictureUrl(movieName) {
 		return "./" + movieName.split(' ').join('_').toLowerCase() + ".jpg";
 	}
-    
-    addOpinionToContractSigned(name, mark){
-        const Tx = require('ethereumjs-tx');
-		const contract = require('truffle-contract');
-		const movieMark = contract(MovieMark);
+
+	getOpinionCount() {
+		const accountAddress = "0xFD500653d64Ad617BF822B3b036392D135e85FB5"; // Account from metamask or testrpc
 		let movieMarkInstance;
 
-		const contractAddress = "0x0735758046544ece3853691137956c84ba778f98"; // Get contract address after exec truffle compile and truffle migrate
+		getWeb3.then(results => {
+			console.log(results.web3);
+
+			movieMark.setProvider(results.web3.currentProvider);
+			movieMark.deployed().then((instance) => {
+				console.log(instance);
+				movieMarkInstance = instance;
+
+				movieMarkInstance.getOpinionCount.call(accountAddress).then(function (result) {
+					console.log("normalReturn"); // "initResolve"
+					console.log(result.c[0]); // "initResolve"
+					console.log("Retour opinion count", result);
+					//this.setState({storageValue: result.c[0]})
+					//return this.setState({ storageValue: result.c[0] })
+				}.bind(this));
+
+			});
+		});
+	}
+
+    addOpinionToContractSigned(name, mark) {
+		const Tx = require('ethereumjs-tx');
+		let movieMarkInstance;
+
+		const contractAddress = "0x8b07afe04c982c24168db13b9d5e98b98002b8c8"; // Get contract address after exec truffle compile and truffle migrate
 
 		// Account data
 		const accountAddress = "0xFD500653d64Ad617BF822B3b036392D135e85FB5"; // Account from metamask or testrpc
@@ -113,23 +182,7 @@ class App extends Component {
 			movieMark.deployed().then((instance) => {
 				console.log(instance);
 				movieMarkInstance = instance;
-                
-                const ABI =
-                    [{
-                        "constant": false,
-                        "inputs": [{
-                            "name": "movieTitle",
-                            "type": "string"
-                        },{
-                            "name": "mark",
-                            "type": "int"
-                        }],
-                        "name" : "sendNewOpinion",
-                        "outputs" : [],
-                        "payable" : false,
-                        "stateMutability": "nonpayable",
-						"type": "function"
-                    }];
+
 
 				/*const ABI =
 					[{
@@ -202,12 +255,25 @@ class App extends Component {
 					else {
 						console.log('Transaction receipt hash pending');
 						console.log(hash);
+
+
+						//console.log(movieMarkInstance.getOpinionCount.call(accountAddress));
+
+						movieMarkInstance.getOpinionCount.call(accountAddress).then(function (result) {
+							console.log("normalReturn"); // "initResolve"
+							console.log(result.c[0]); // "initResolve"
+							console.log("Retour opinion count", result);
+							//this.setState({storageValue: result.c[0]})
+							//return this.setState({ storageValue: result.c[0] })
+						}.bind(this))
 					}
 				}.bind(this))
 			}).then((result) => {
+				console.log(result);
 				// Get the value from the contract to prove it worked.
 				// return simpleStorageInstance.get.call(accounts[0])
 			}).then((result) => {
+				console.log(result);
 				// Update state with the result.
 				//return this.setState({ storageValue: result.c[0] })
 			})
@@ -375,6 +441,7 @@ class App extends Component {
 											<input type="number" name="movieMark" className="form-control" min="0" max="5" placeholder="Note" onChange={this.handleChange} />
 										</div>
 										<button type="button" className="btn btn-primary" onClick={this.addMark}>Ok</button>
+										<button type="button" className="btn btn-secondary" onClick={this.getOpinionCount}>Get count</button>
 									</fieldset>
 								</div>
 							</div>
