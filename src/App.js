@@ -22,7 +22,8 @@ class App extends Component {
 			}
 		};
 
-		this.changeContractValue = this.changeContractValue.bind(this);
+		//this.changeContractValue = this.changeContractValue.bind(this);
+        this.addOpinionToContractSigned = this.addOpinionToContractSigned.bind(this);
 		this.handleChange = this.handleChange.bind(this);
 		this.handleSubmit = this.handleSubmit.bind(this);
 		this.addMark = this.addMark.bind(this);
@@ -72,6 +73,7 @@ class App extends Component {
 		console.log("Add a mark", movieName, movieMark);
 
 		// TODO: call the contract to save the new mark
+        this.addOpinionToContractSigned(movieName, movieMark);
 	}
 
 	getDetails(index) {
@@ -89,33 +91,128 @@ class App extends Component {
 	getPictureUrl(movieName) {
 		return "./" + movieName.split(' ').join('_').toLowerCase() + ".jpg";
 	}
-
-	changeContractValue(value) {
+    
+    addOpinionToContractSigned(name, mark){
+        const Tx = require('ethereumjs-tx');
 		const contract = require('truffle-contract');
-		const simpleStorage = contract(SimpleStorageContract);
 		const movieMark = contract(MovieMark);
-		simpleStorage.setProvider(this.state.web3.currentProvider);
+		let movieMarkInstance;
 
-		// Declaring this for later so we can chain functions on SimpleStorage.
-		let simpleStorageInstance;
+		const contractAddress = "0x54db0abe208b6cde0d507d1ca781849b14fa1155"; // Get contract address after exec truffle compile and truffle migrate
 
-		this.state.web3.eth.getAccounts((error, accounts) => {
-			simpleStorage.deployed().then((instance) => {
-				simpleStorageInstance = instance;
+		// Account data
+		const accountAddress = "0xC815440Ffb1E6eAAdb10f1286F1160e1dCbf590B"; // Account from metamask or testrpc
+		const accountSecret = "0d47ae60aded03e386a07a8f5c2f06c35420eafc226186ea469fb8b2ce998d05"; // Private key from metamask or testrpc
+		const privateKey = Buffer.from(accountSecret, 'hex');
 
-				// Stores a given value, 5 by default.
-				return simpleStorageInstance.set(value, {from: accounts[0]})
+		getWeb3.then(results => {
+			//this.setState({storageValue: value});
+
+			movieMark.setProvider(results.web3.currentProvider);
+			movieMark.deployed().then((instance) => {
+				console.log(instance);
+				movieMarkInstance = instance;
+                
+                const ABI =
+                    [{
+                        "constant": false,
+                        "inputs": [{
+                            "name": "movieTitle",
+                            "type": "string"
+                        },{
+                            "name": "mark",
+                            "type": "int"
+                        }],
+                        "name" : "sendNewOpinion",
+                        "outputs" : [],
+                        "payable" : false,
+                        "stateMutability": "nonpayable",
+						"type": "function"
+                    }];
+
+				/*const ABI =
+					[{
+						"constant": false,
+						"inputs": [{"name": "x", "type": "uint256"}],
+						"name": "set",
+						"outputs": [],
+						"payable": false,
+						"stateMutability": "nonpayable",
+						"type": "function"
+					}, {
+						"constant": true, "inputs": [], "name": "get", "outputs": [{
+							"name": "", "type": "uint256"
+						}], "payable": false, "stateMutability": "view", "type": "function"
+					}];*/
+
+				const _ = require('lodash');
+				const SolidityFunction = require('web3/lib/web3/function');
+				const solidityFunction = new SolidityFunction('', _.find(ABI, {name: 'sendNewOpinion'}), '');
+				console.log('This shows what toPayload expects as an object');
+				console.log(solidityFunction);
+
+				// Get payload data
+				const payloadData = solidityFunction.toPayload([name, mark]).data;
+
+				// Gas settings
+				const gasPrice = results.web3.eth.gasPrice;
+				const gasPriceHex = results.web3.toHex(gasPrice);
+				const gasLimitHex = results.web3.toHex(300000);
+				console.log('Current gasPrice: ' + gasPrice + ' OR ' + gasPriceHex);
+
+				// Nonce settings
+				const nonce = results.web3.eth.getTransactionCount(accountAddress);
+				const nonceHex = results.web3.toHex(nonce);
+				console.log('nonce (transaction count on accountAddress): ' + nonce + '(' + nonceHex + ')');
+
+				// Create transaction
+				const rawTx = {
+					nonce: nonceHex,
+					gasPrice: gasPriceHex,
+					gasLimit: gasLimitHex,
+					to: contractAddress,
+					from: accountAddress,
+					value: '0x00',
+					data: payloadData
+				};
+
+				// Sign transaction
+				const tx = new Tx(rawTx);
+				tx.sign(privateKey);
+
+				// Send transaction
+				const serializedTx = tx.serialize();
+
+				// var self = this;
+				results.web3.eth.sendRawTransaction(serializedTx.toString('hex'), function (err, hash) {
+					if (err) {
+						console.log('Error:');
+						console.log(err);
+					}
+					else {
+						console.log('Transaction receipt hash pending');
+						console.log(hash);
+						console.log(movieMarkInstance.get.call(accountAddress));
+
+						movieMarkInstance.get.call(accountAddress).then(function (result) {
+							console.log("normalReturn"); // "initResolve"
+							console.log(result.c[0]); // "initResolve"
+							//this.setState({storageValue: result.c[0]})
+							//return this.setState({ storageValue: result.c[0] })
+						}.bind(this))
+					}
+				}.bind(this))
 			}).then((result) => {
 				// Get the value from the contract to prove it worked.
-				return simpleStorageInstance.get.call(accounts[0])
+				// return simpleStorageInstance.get.call(accounts[0])
 			}).then((result) => {
 				// Update state with the result.
-				return this.setState({storageValue: result.c[0]})
+				//return this.setState({ storageValue: result.c[0] })
 			})
-		});
-	}
+		})
+    }
 
-	changeContractValueSigned(value) {
+	/*changeContractValueSigned(value) {
 		const Tx = require('ethereumjs-tx');
 		const contract = require('truffle-contract');
 		const simpleStorage = contract(SimpleStorageContract);
@@ -216,7 +313,7 @@ class App extends Component {
 				//return this.setState({ storageValue: result.c[0] })
 			})
 		})
-	}
+	}*/
 
 	handleChange(event) {
 		this.setState({[event.target.name]: event.target.value});
