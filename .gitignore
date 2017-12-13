@@ -33,6 +33,8 @@ Temporary Items
 # User-specific stuff:
 .idea
 *.iml
+build_webpack
+build
 
 # CMake
 cmake-build-debug/
