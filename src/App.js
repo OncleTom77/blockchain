@@ -25,7 +25,7 @@ class App extends Component {
 		this.changeContractValue = this.changeContractValue.bind(this);
 		this.handleChange = this.handleChange.bind(this);
 		this.handleSubmit = this.handleSubmit.bind(this);
-		this.addMovie = this.addMovie.bind(this);
+		this.addMark = this.addMark.bind(this);
 		this.getDetails = this.getDetails.bind(this);
 		this.getPictureUrl = this.getPictureUrl.bind(this);
 	}
@@ -65,17 +65,13 @@ class App extends Component {
 		this.changeContractValueSigned(value);
 	}
 
-	addMovie() {
+	addMark() {
 		const movieName = this.state.movieName;
 		const movieMark = this.state.movieMark;
 
-		console.log("Add a movie", movieName, movieMark);
+		console.log("Add a mark", movieName, movieMark);
 
-		const movies = this.state.movies;
-		movies.push(movieName);
-		this.setState({
-			movies: movies
-		});
+		// TODO: call the contract to save the new mark
 	}
 
 	getDetails(index) {
@@ -232,23 +228,23 @@ class App extends Component {
 		let stars = [];
 		for (let i = 0; i < 5; i++) {
 			if (i < this.state.details.mark) {
-				stars.push(<span className="glyphicon glyphicon-star" aria-hidden="true" style={{fontSize: "2em"}}></span>);
+				stars.push(<span key={i} className="glyphicon glyphicon-star" aria-hidden="true" style={{fontSize: "2em"}}></span>);
 			} else {
-				stars.push(<span className="glyphicon glyphicon-star-empty" aria-hidden="true" style={{fontSize: "2em"}}></span>);
+				stars.push(<span key={i} className="glyphicon glyphicon-star-empty" aria-hidden="true" style={{fontSize: "2em"}}></span>);
 			}
 		}
 
 		return (
 			<div className="App">
-				<nav className="navbar navbar-default pure-menu pure-menu-horizontal">
+				<nav className="navbar navbar-default navbar-fixed-top pure-menu pure-menu-horizontal" style={{height: "40px"}}>
 					<a href="#" className="pure-menu-heading pure-menu-link">Truffle Box</a>
 				</nav>
 
 				<div className="container">
-					<div className="row">
+					<div className="row" style={{height: "calc(100% - 40px)"}}>
 						<div className="col-md-5" style={{border: "1px solid blue"}}>
 							<h1>Liste des films</h1>
-							<div className="list-group">
+							<div className="list-group" style={{height: "100%", overflow: "auto"}}>
 								{
 									this.state.movies.map(function(movieTitle, index) {
 										return (
@@ -271,14 +267,16 @@ class App extends Component {
 									<span className="glyphicon glyphicon-plus" aria-hidden="true" style={{fontSize: "8em"}}></span>
 								</div>
 								<div className="col-md-6">
-									<h1>Ajouter un film</h1>
-									<div className="form-group">
-										<input type="text" name="movieName" className="form-control" placeholder="Nom" onChange={this.handleChange} />
-									</div>
-									<div className="form-group">
-										<input type="number" name="movieMark" className="form-control" min="0" max="5" placeholder="Note" onChange={this.handleChange} />
-									</div>
-									<button type="button" className="btn btn-primary" onClick={this.addMovie}>Ok</button>
+									<fieldset>
+										<h1>Ajouter une note</h1>
+										<div className="form-group">
+											<input type="text" name="movieName" className="form-control" placeholder="Nom" onChange={this.handleChange} />
+										</div>
+										<div className="form-group">
+											<input type="number" name="movieMark" className="form-control" min="0" max="5" placeholder="Note" onChange={this.handleChange} />
+										</div>
+										<button type="button" className="btn btn-primary" onClick={this.addMark}>Ok</button>
+									</fieldset>
 								</div>
 							</div>
 						</div>
