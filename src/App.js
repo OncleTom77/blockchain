@@ -7,6 +7,7 @@ import './css/oswald.css'
 import './css/open-sans.css'
 import './css/pure-min.css'
 import './App.css'
+import { log } from 'util';
 
 class App extends Component {
 	constructor(props) {
@@ -98,15 +99,15 @@ class App extends Component {
 		const movieMark = contract(MovieMark);
 		let movieMarkInstance;
 
-		const contractAddress = "0x54db0abe208b6cde0d507d1ca781849b14fa1155"; // Get contract address after exec truffle compile and truffle migrate
+		const contractAddress = "0x0735758046544ece3853691137956c84ba778f98"; // Get contract address after exec truffle compile and truffle migrate
 
 		// Account data
-		const accountAddress = "0xC815440Ffb1E6eAAdb10f1286F1160e1dCbf590B"; // Account from metamask or testrpc
-		const accountSecret = "0d47ae60aded03e386a07a8f5c2f06c35420eafc226186ea469fb8b2ce998d05"; // Private key from metamask or testrpc
+		const accountAddress = "0xFD500653d64Ad617BF822B3b036392D135e85FB5"; // Account from metamask or testrpc
+		const accountSecret = "7bde9eb616efbd450c0573180b68b4be083b491c2518ee6e6e253dba9bd79ca2"; // Private key from metamask or testrpc
 		const privateKey = Buffer.from(accountSecret, 'hex');
 
 		getWeb3.then(results => {
-			//this.setState({storageValue: value});
+			console.log(results.web3);
 
 			movieMark.setProvider(results.web3.currentProvider);
 			movieMark.deployed().then((instance) => {
@@ -151,13 +152,18 @@ class App extends Component {
 				console.log('This shows what toPayload expects as an object');
 				console.log(solidityFunction);
 
+				const data = [ name, parseInt(mark) ];
+				console.log(data);
+
 				// Get payload data
-				const payloadData = solidityFunction.toPayload([name, mark]).data;
+				const payloadData = solidityFunction.toPayload(data).data;
+
+				console.log("Solidity data: " + payloadData);
 
 				// Gas settings
 				const gasPrice = results.web3.eth.gasPrice;
 				const gasPriceHex = results.web3.toHex(gasPrice);
-				const gasLimitHex = results.web3.toHex(300000);
+				const gasLimitHex = results.web3.toHex(4612388);
 				console.log('Current gasPrice: ' + gasPrice + ' OR ' + gasPriceHex);
 
 				// Nonce settings
@@ -176,6 +182,8 @@ class App extends Component {
 					data: payloadData
 				};
 
+				console.log('Rawtx: ' + JSON.stringify(rawTx));
+
 				// Sign transaction
 				const tx = new Tx(rawTx);
 				tx.sign(privateKey);
@@ -183,8 +191,10 @@ class App extends Component {
 				// Send transaction
 				const serializedTx = tx.serialize();
 
+				console.log(serializedTx);
+
 				// var self = this;
-				results.web3.eth.sendRawTransaction(serializedTx.toString('hex'), function (err, hash) {
+				results.web3.eth.sendRawTransaction("0x" + serializedTx.toString('hex'), function (err, hash) {
 					if (err) {
 						console.log('Error:');
 						console.log(err);
@@ -192,14 +202,6 @@ class App extends Component {
 					else {
 						console.log('Transaction receipt hash pending');
 						console.log(hash);
-						console.log(movieMarkInstance.get.call(accountAddress));
-
-						movieMarkInstance.get.call(accountAddress).then(function (result) {
-							console.log("normalReturn"); // "initResolve"
-							console.log(result.c[0]); // "initResolve"
-							//this.setState({storageValue: result.c[0]})
-							//return this.setState({ storageValue: result.c[0] })
-						}.bind(this))
 					}
 				}.bind(this))
 			}).then((result) => {
